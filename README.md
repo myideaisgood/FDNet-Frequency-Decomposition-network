@@ -17,7 +17,6 @@ conda env create -f fdnet_env.yml
 
 ## Abstract
 
-
 Recent learning-based lossless image compression methods encode an image in the unit of subimages and achieve better or comparable performances to conventional 
 non-learning algorithms, along with reasonable inference time. However, these methods do not consider the performance drop in the high-frequency region, giving equal 
 consideration to the low and high-frequency regions. In this paper, we propose a new lossless image compression method that proceeds the encoding in a coarse-to-fine manner 
@@ -26,3 +25,32 @@ high-frequency region. The low-frequency components act as strong prior in this 
 as low or high-frequency regions, we also design a discriminating network that finds adaptive thresholds depending on the color channel, spatial location, and image 
 characteristics. The network derives the image-specific optimal ratio of low/high-frequency components as a result. Experiments show that the proposed method achieves 
 state-of-the-art performance for benchmark high-resolution datasets, outperforming both conventional learning-based and non-learning approaches.
+
+## Dataset
+Train Dataset
+
+[DIV2K] (https://data.vision.ee.ethz.ch/cvl/DIV2K/)
+
+Test Dataset
+
+[DIV2K] (https://data.vision.ee.ethz.ch/cvl/DIV2K/)
+
+[CLIC] (http://challenge.compression.cc/tasks/)
+
+## Brief explanation of contents
+
+```
+|── experiments
+    ├──> experiment_name 
+         ├──> ckpt : trained models will be saved here
+         └──> log  : log will be saved here
+|── utils : files for utility functions
+|── config.py : configuration should be controlled only here 
+|── decode.py : decode compressed files to images
+|── encode.py : encode images to compressed format
+|── fdnet_env.yml : virtual enviornment specification
+|── model.py : architecture of FDNet
+|── test.py : test the model. performance is estimated (not actual compression)
+└── train.py : train the model
+
+```
