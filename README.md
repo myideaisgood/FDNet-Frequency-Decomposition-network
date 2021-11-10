@@ -51,6 +51,28 @@ Test Dataset
 |── fdnet_env.yml : virtual enviornment specification
 |── model.py : architecture of FDNet
 |── test.py : test the model. performance is estimated (not actual compression)
-└── train.py : train the model
+|── train.py : train the model
+└── jpegxl : folder for jpegxl library. explained below.
 
+```
+
+## Guidelines for Codes
+
+1. Install JPEG-XL
+   1) Download JPEG-XL from https://gitlab.com/wg1/jpeg-xl and follow the installation process
+   2) Change the directory name 'libjxl' to 'jpegxl'
+
+2. Check configurations from config.py
+
+3. Run the following command for training  the network
+```
+python train.py --gpu_num=0 --experiment_name='default/' --dataset='div2k/'
+```
+
+4. The trained model will be saved in the following directory : experiments/default/ckpt
+
+5. Run the following command for testing the network. Note that the estimated bpp is printed. The actual bpp differs from the estimated bpp (about 0.1 bpp)
+   **** parameter empty_cache in config.py should be set to True if memory issue occurs ****
+```
+python test.py --gpu_num=0 --experiment_name='default/' --dataset='div2k/' --empty_cache=True
 ```
