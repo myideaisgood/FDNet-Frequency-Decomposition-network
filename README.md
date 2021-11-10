@@ -69,11 +69,26 @@ Test Dataset
 python train.py --gpu_num=0 --experiment_name='default/' --dataset='div2k/'
 ```
 
-4. The trained model will be saved in the following directory : experiments/default/ckpt
+The trained model will be saved in the following directory : experiments/default/ckpt
 
-5. Run the following command for testing the network. Note that the estimated bpp is printed. The actual bpp differs from the estimated bpp (about 0.1 bpp)
+4. Run the following command for testing the network. Note that the estimated bpp is printed. The actual bpp differs from the estimated bpp (about 0.1 bpp)
    
    **** parameter empty_cache in config.py should be set to True if memory issue occurs ****
 ```
 python test.py --gpu_num=0 --experiment_name='default/' --dataset='div2k/' --empty_cache=True
 ```
+
+5. Run the following command for actual compression (encoding)
+```
+python encode.py --gpu_num=0 --experiment_name='default/' --dataset='div2k/' --empty_cache=True
+```
+The encoded result will be saved in 'encoded_results/'
+
+6. Run the following command for decoding
+```
+python decode.py --gpu_num=0 --experiment_name='default/' --dataset='div2k/' --empty_cache=True
+```
+
+This decodes the compressed files in 'encoded_results/' folder.
+
+The decoded result will be saved in 'decoded_results/'
