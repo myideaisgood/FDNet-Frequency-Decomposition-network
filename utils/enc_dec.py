@@ -24,7 +24,7 @@ def encode_padding(padding, img_name, ENC_DIR):
     with open(filename, 'wb') as fout:
         fout.write(pad_bytes)    
 
-def encode_jpegxl(img_a, img_name, H, W, ENC_DIR):
+def encode_jpegxl(img_a, img_name, img_name_wo_space, H, W, ENC_DIR):
 
     start_time = time()
 
@@ -40,9 +40,9 @@ def encode_jpegxl(img_a, img_name, H, W, ENC_DIR):
 
     cv2.imwrite(savename, img_a)
 
-    os.system('jpegxl/build/tools/cjxl "%s" %s -q 100' % (savename, ENC_DIR + img_name + '/jpegxl.jxl'))
+    os.system('jpegxl/build/tools/cjxl "%s" %s -q 100' % (savename, ENC_DIR + img_name_wo_space + '/jpegxl.jxl'))
 
-    filesize = os.stat(ENC_DIR + img_name + '/jpegxl.jxl').st_size
+    filesize = os.stat(ENC_DIR + img_name_wo_space + '/jpegxl.jxl').st_size
     
     end_time = time()
 
@@ -54,8 +54,8 @@ def encode_jpegxl(img_a, img_name, H, W, ENC_DIR):
 
     return jpegxl_bpp, jpegxl_time
 
-def encode_torchac(pmf_softmax, q_res, img_name, color, loc, H, W, ENC_DIR, EMPTY_CACHE, frequency='low'):
-
+def encode_torchac(pmf_softmax, q_res, mask, img_name, color, loc, H, W, ENC_DIR, EMPTY_CACHE, frequency='low'):
+    
     pmf_softmax = pmf_softmax.permute(0,2,3,1)
     pmf_softmax = torch.unsqueeze(pmf_softmax, dim=1)
 
@@ -69,10 +69,23 @@ def encode_torchac(pmf_softmax, q_res, img_name, color, loc, H, W, ENC_DIR, EMPT
 
     sym = q_res.to(torch.int16)
 
-    cdf = cdf.detach().cpu()
-    sym = sym.detach().cpu()
+    _,_,h,w,c = cdf.shape
 
-    byte_stream = torchac.encode_float_cdf(cdf, sym, check_input_bounds=True)
+    cdf = cdf.reshape(1,1,h*w,c)
+    sym = sym.reshape(1,1,h*w)
+
+    encode_idx = (mask.flatten()==1).nonzero(as_tuple=False)
+
+    if encode_idx.nelement()==0:
+        byte_stream = str.encode('None')
+    else:
+        cdf_encode = cdf[:,:,encode_idx,:]
+        sym_encode = sym[:,:,encode_idx]
+
+        cdf_encode = cdf_encode.detach().cpu()
+        sym_encode = sym_encode.detach().cpu()
+
+        byte_stream = torchac.encode_float_cdf(cdf_encode, sym_encode, check_input_bounds=True)
 
     if frequency=='low':
         f_name = 'L'
@@ -122,7 +135,7 @@ def decode_jpegxl(ENC_DIR, img_name):
 
     return img_a
 
-def decode_torchac(pmf_softmax, img_name, color, loc, ENC_DIR, EMPTY_CACHE, frequency='low'):
+def decode_torchac(pmf_softmax, img_name, mask, color, loc, ENC_DIR, EMPTY_CACHE, frequency='low'):
 
     if frequency=='low':
         f_name = 'L'
@@ -145,9 +158,32 @@ def decode_torchac(pmf_softmax, img_name, color, loc, ENC_DIR, EMPTY_CACHE, freq
         torch.cuda.empty_cache()
 
     cdf = cdf.clamp(max=1.)
-    cdf = cdf.detach().cpu()
 
-    return torchac.decode_float_cdf(cdf, byte_stream)
+    _,_,h,w,c = cdf.shape
+
+    cdf = cdf.reshape(1,1,h*w,c)
+
+    decode_idx = (mask.flatten()==1).nonzero(as_tuple=False)
+    if decode_idx.nelement()==0:
+        decoded_sym_freq = var_or_cuda(torch.zeros_like(mask, dtype=torch.int16))
+
+    else:
+        cdf_decode = cdf[:,:,decode_idx,:]
+
+        cdf_decode = cdf_decode.detach().cpu()
+
+        decoded_sym = torchac.decode_float_cdf(cdf_decode, byte_stream)
+        decoded_sym = torch.squeeze(var_or_cuda(decoded_sym))
+
+        decoded_sym_freq = var_or_cuda(torch.zeros_like(mask, dtype=torch.int16))
+
+        decode_idx = torch.nonzero(mask, as_tuple=False)
+        decode_idx = torch.transpose(decode_idx, 1, 0)
+        decode_idx = [elem for elem in decode_idx]
+
+        decoded_sym_freq = decoded_sym_freq.index_put(decode_idx, decoded_sym)
+
+    return decoded_sym_freq
 
 def read_img(img_name):
 

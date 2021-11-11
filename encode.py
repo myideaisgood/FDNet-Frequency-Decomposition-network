@@ -106,27 +106,18 @@ with torch.no_grad():
         img_a, img_b, img_c, img_d, ori_img, img_name, padding = read_img(os.path.join(DATA_DIR, DATASET, 'test', img_name))
         H, W, _ = ori_img.shape
 
-        # Constant for masking
-        constant = {}
-        for color in color_names:
-            if color == 'Y':
-                sym_num = 511
-            else:
-                sym_num = 1021
-            constant[color] = var_or_cuda(torch.zeros([1, sym_num, int((H+padding[0])/2), int((W+padding[1])/2)]), device=device)
-            constant[color][:,0,:,:] = 10000
-
         # Modify image name lena.png -> lena
         img_name = modify_imgname(img_name)
+        img_name_wo_space = img_name.replace(" ","")
 
         # Create directory to save compressed file
-        create_path(os.path.join(ENC_DIR, img_name))
+        create_path(os.path.join(ENC_DIR, img_name_wo_space))
 
         # Encode padding
-        encode_padding(padding, img_name, ENC_DIR)
+        encode_padding(padding, img_name_wo_space, ENC_DIR)
 
         # Encode img_a by jpegxl
-        jpegxl_bpp, jpegxl_time = encode_jpegxl(img_a, img_name, H, W, ENC_DIR)
+        jpegxl_bpp, jpegxl_time = encode_jpegxl(img_a, img_name, img_name_wo_space, H, W, ENC_DIR)
         
         jpegxl_avg_bpp += jpegxl_bpp
         jpegxl_avg_time += jpegxl_time
@@ -160,15 +151,9 @@ with torch.no_grad():
 
                 _, q_res_H, pmf_softmax_H = cur_network(input_H, cur_gt_img, cur_ref_img, frequency='high', mode='eval')
 
-                pmf_softmax_L = pmf_softmax_L * mask_L + constant[color] * mask_H
-                pmf_softmax_H = pmf_softmax_H * mask_H + constant[color] * mask_L
-
-                q_res_L = q_res_L * mask_L
-                q_res_H = q_res_H * mask_H
-
                 # Encode by torchac
-                bpp_L = encode_torchac(pmf_softmax_L, q_res_L, img_name, color, loc, H, W, ENC_DIR, EMPTY_CACHE, frequency='low')
-                bpp_H = encode_torchac(pmf_softmax_H, q_res_H, img_name, color, loc, H, W, ENC_DIR, EMPTY_CACHE, frequency='high')
+                bpp_L = encode_torchac(pmf_softmax_L, q_res_L, mask_L, img_name_wo_space, color, loc, H, W, ENC_DIR, EMPTY_CACHE, frequency='low')
+                bpp_H = encode_torchac(pmf_softmax_H, q_res_H, mask_H, img_name_wo_space, color, loc, H, W, ENC_DIR, EMPTY_CACHE, frequency='high')
 
                 bpp = bpp_L + bpp_H
 
@@ -177,7 +162,7 @@ with torch.no_grad():
                 if EMPTY_CACHE:
                     del q_res_L, pmf_softmax_L, q_res_H, pmf_softmax_H
                     torch.cuda.empty_cache()
-
+                
             enc_time = time() - start_time
             enc_times[loc].update(enc_time)
 

@@ -116,16 +116,6 @@ with torch.no_grad():
         padding = decode_padding(ENC_DIR, img_name)
         pad_w, pad_h = padding[0], padding[1]
 
-        # Constant for masking
-        constant = {}
-        for color in color_names:
-            if color == 'Y':
-                sym_num = 511
-            else:
-                sym_num = 1021
-            constant[color] = var_or_cuda(torch.zeros([1, sym_num, int((H*2+padding[0])/2), int((W*2+padding[1])/2)]), device=device)
-            constant[color][:,0,:,:] = 1
-
         for loc in loc_names:
             for color in color_names:
                 # Obtain GT
@@ -146,20 +136,15 @@ with torch.no_grad():
                 # Feed to network
                 pred_L, q_res_L, error_var_map, error_var_th, mask_L, pmf_softmax_L = cur_network(cur_inputs, cur_gt_img, cur_ref_img, frequency='low', mode='eval')
                 mask_H = 1-mask_L
-                                        
-                pmf_softmax_L = pmf_softmax_L * mask_L + constant[color] * mask_H
 
                 # Decode Low frequency region
-                decoded_sym_L = decode_torchac(pmf_softmax_L, img_name, color, loc, ENC_DIR, EMPTY_CACHE, frequency='low')
-                decoded_sym_L = var_or_cuda(decoded_sym_L)
+                decoded_sym_L = decode_torchac(pmf_softmax_L, img_name, mask_L, color, loc, ENC_DIR, EMPTY_CACHE, frequency='low')
                 decode_L = custom_round(pred_L) - decoded_sym_L + sym_mean
                 input_H = torch.cat([cur_inputs, decode_L*mask_L], dim=1)
 
                 pred_H, _, pmf_softmax_H = cur_network(input_H, cur_gt_img, cur_ref_img, frequency='high', mode='eval')
 
-                pmf_softmax_H = pmf_softmax_H * mask_H + constant[color] * mask_L
-                decoded_sym_H = decode_torchac(pmf_softmax_H, img_name, color, loc, ENC_DIR, EMPTY_CACHE, frequency='high')
-                decoded_sym_H = var_or_cuda(decoded_sym_H)
+                decoded_sym_H = decode_torchac(pmf_softmax_H, img_name, mask_H, color, loc, ENC_DIR, EMPTY_CACHE, frequency='high')
                 decode_H = custom_round(pred_H) - decoded_sym_H + sym_mean
 
                 recon = mask_L * decode_L + mask_H * decode_H
