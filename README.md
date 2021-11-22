@@ -1,7 +1,5 @@
 Implementation of "FDNet : Frequency Decomposition for Learned Lossless Image Compression"
 
-Hochang Rhee, Yeong Il Jang, Seyun Kim, and Nam Ik Cho
-
 ## Environments
 - Ubuntu 18.04
 - [Tensorflow 1.13.1](http://www.tensorflow.org/)
