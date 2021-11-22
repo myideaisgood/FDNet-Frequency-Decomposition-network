@@ -1,4 +1,4 @@
-Implementation of "FDNet : Frequency Decomposition for Learned Lossless Image Compression"
+Implementation of "LC-FDNet : Learned Lossless Image Compression with Frequency Decomposition Network"
 
 ## Environments
 - Ubuntu 18.04
