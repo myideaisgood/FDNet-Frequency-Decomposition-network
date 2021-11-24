@@ -7,7 +7,7 @@ Implementation of "LC-FDNet : Learned Lossless Image Compression with Frequency 
 - Python 3.7.7
 
 You can type the following command to easily build the environment.
-Download 'lcic_duplex.yml' and type the following command.
+Download 'fdnet_env.yml' and type the following command.
 
 ```
 conda env create -f fdnet_env.yml
